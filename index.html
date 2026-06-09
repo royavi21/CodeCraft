@@ -151,6 +151,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 body.light-mode .scan-dropzone{background:linear-gradient(135deg,rgba(55,138,221,0.14),rgba(255,255,255,0.98))}
 body.light-mode .scan-dropzone:hover,.light-mode .scan-dropzone.dragover{background:linear-gradient(135deg,rgba(55,138,221,0.18),rgba(255,255,255,1))}
 
+#scan-preview-wrap{background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(17,24,39,0.85))}
+body.light-mode #scan-preview-wrap{background:linear-gradient(135deg,rgba(55,138,221,0.08),rgba(255,255,255,0.95))}
+
+body.light-mode .nav-item.scan-highlight {
+  background: linear-gradient(135deg, rgba(55,138,221,0.08), rgba(255,255,255,0.95));
+  border-color: rgba(55,138,221,0.3);
+  color: var(--text2);
+  box-shadow: 0 4px 12px rgba(55,138,221,0.05);
+}
+body.light-mode .nav-item.scan-highlight:hover {
+  background: linear-gradient(135deg, rgba(55,138,221,0.12), rgba(255,255,255,1));
+  border-color: var(--blue-400);
+  color: var(--text);
+}
+body.light-mode .nav-item.scan-highlight.active {
+  background: linear-gradient(135deg, rgba(55,138,221,0.18), rgba(255,255,255,1));
+  border-color: var(--blue-500);
+  color: var(--blue-500);
+}
+body.light-mode .scan-meta-box,
+body.light-mode #scan-output {
+  background: var(--bg3);
+}
+
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 20px;font-size:13px;font-weight:500;color:var(--text);z-index:1000;display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(10px);transition:all 0.3s ease;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
@@ -210,6 +234,29 @@ body.light-mode{
   --text:#0D1B2E;--text2:#4A6080;--text3:#8DAAC8;
 }
 body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+
+/* Camera Scanner Modal */
+.camera-modal{position:fixed;inset:0;background:rgba(11,15,26,0.85);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease}
+.camera-modal.open{opacity:1}
+.camera-modal-content{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);width:95%;max-width:480px;overflow:hidden;box-shadow:0 24px 48px rgba(0,0,0,0.5);transform:translateY(20px);transition:transform 0.3s ease}
+.camera-modal.open .camera-modal-content{transform:translateY(0)}
+.camera-modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.camera-modal-header h3{font-size:15px;font-weight:700;color:var(--text);margin:0}
+.camera-close-btn{background:transparent;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1;padding:4px;transition:color var(--transition);display:flex;align-items:center;justify-content:center}
+.camera-close-btn:hover{color:var(--text)}
+.camera-video-container{position:relative;width:100%;aspect-ratio:4/3;background:#000;overflow:hidden}
+#camera-video{width:100%;height:100%;object-fit:cover}
+.scanner-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.scanner-box{width:220px;height:220px;border:2px dashed rgba(55,138,221,0.4);position:relative;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);border-radius:var(--radius-sm)}
+.scanner-laser{position:absolute;left:5%;right:5%;height:3px;background:linear-gradient(90deg,transparent,#ff3b30,transparent);box-shadow:0 0 8px #ff3b30;animation:laserScan 2.5s infinite ease-in-out}
+@keyframes laserScan{0%{top:5%}50%{top:95%}100%{top:5%}}
+.scanner-corner{position:absolute;width:20px;height:20px;border:3px solid var(--blue-400)}
+.scanner-corner.tl{top:-2px;left:-2px;border-right:none;border-bottom:none;border-top-left-radius:4px}
+.scanner-corner.tr{top:-2px;right:-2px;border-left:none;border-bottom:none;border-top-right-radius:4px}
+.scanner-corner.bl{bottom:-2px;left:-2px;border-right:none;border-top:none;border-bottom-left-radius:4px}
+.scanner-corner.br{bottom:-2px;right:-2px;border-left:none;border-top:none;border-bottom-right-radius:4px}
+.camera-modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:12px;align-items:center}
+.camera-select-wrap{flex:1}
 </style>
 </head>
 <body>
@@ -510,13 +557,13 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
       <div class="output-grid">
         <div class="output-card">
           <span class="output-label">Preview</span>
-          <div class="qr-canvas-wrap" id="scan-preview-wrap" style="min-height:180px;justify-content:center;align-items:center;background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(17,24,39,0.85));">
+          <div class="qr-canvas-wrap" id="scan-preview-wrap" style="min-height:180px;justify-content:center;align-items:center;">
             <img id="scan-preview" alt="Selected scan preview" style="max-width:100%;max-height:260px;border-radius:10px;display:none;"/>
             <div id="scan-placeholder" style="font-size:13px;color:var(--text3);text-align:center;line-height:1.6">No image selected yet.<br/>Choose a file or drop an image here.</div>
           </div>
           <div class="dl-btns scan-actions">
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('scan-input').click()" type="button">Choose file</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('scan-camera-input').click()" type="button">Use camera</button>
+            <button class="btn btn-ghost btn-sm" onclick="openCameraModal()" type="button">Use camera</button>
             <button class="btn btn-ghost btn-sm" onclick="clearScan()" type="button">Clear</button>
           </div>
         </div>
@@ -757,7 +804,35 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
     </div>
 
   </div><!-- /workspace -->
-</div><!-- /main -->
+<!-- Camera Scanner Modal -->
+<div id="camera-modal" class="camera-modal" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
+  <div class="camera-modal-content">
+    <div class="camera-modal-header">
+      <h3 id="camera-modal-title">Live Camera Scanner</h3>
+      <button class="camera-close-btn" onclick="closeCameraModal()" aria-label="Close scanner">&times;</button>
+    </div>
+    <div class="camera-video-container">
+      <video id="camera-video" autoplay playsinline muted></video>
+      <div class="scanner-overlay">
+        <div class="scanner-box">
+          <div class="scanner-corner tl"></div>
+          <div class="scanner-corner tr"></div>
+          <div class="scanner-corner bl"></div>
+          <div class="scanner-corner br"></div>
+          <div class="scanner-laser"></div>
+        </div>
+      </div>
+    </div>
+    <div class="camera-modal-footer">
+      <div class="camera-select-wrap">
+        <select id="camera-select" onchange="switchCamera(this.value)" aria-label="Select camera">
+          <option value="">Detecting cameras...</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="triggerCameraFallback()" type="button">Fallback Capture</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Copied!</span></div>
 
@@ -1231,45 +1306,254 @@ function clearScan(){
   document.getElementById('scan-output').textContent='';
 }
 
+let activeCodeReader = null;
+
+function playScanBeep() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime); // 1200 Hz
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15); // Fade out quickly
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (e) {
+    console.warn('AudioContext beep failed', e);
+  }
+}
+
+function displayScanResult(text, format) {
+  const output = document.getElementById('scan-output');
+  const scanState = document.getElementById('scan-state');
+
+  document.getElementById('scan-format').textContent = format;
+  document.getElementById('scan-length').textContent = `${text.length} chars`;
+  document.getElementById('scan-meta-grid').style.display = 'grid';
+  output.textContent = text || '(No text decoded)';
+  output.style.display = 'block';
+  scanState.textContent = 'Decoded successfully. The original output is shown below.';
+  showToast('Scan complete');
+}
+
+async function openCameraModal() {
+  const modal = document.getElementById('camera-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  // Force reflow
+  modal.offsetHeight;
+  modal.classList.add('open');
+
+  const select = document.getElementById('camera-select');
+  if (select) {
+    select.innerHTML = '<option value="">Requesting camera permission...</option>';
+  }
+
+  try {
+    if (!window.ZXing) {
+      throw new Error('ZXing library is not loaded');
+    }
+    
+    activeCodeReader = new ZXing.BrowserMultiFormatReader();
+    const videoDevices = await activeCodeReader.listVideoInputDevices();
+    
+    if (!videoDevices || videoDevices.length === 0) {
+      throw new Error('No camera devices found');
+    }
+
+    if (select) {
+      select.innerHTML = '';
+      let defaultDeviceId = videoDevices[0].deviceId;
+      
+      // Try to find a back camera
+      for (const device of videoDevices) {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Camera ${select.length + 1}`;
+        select.appendChild(option);
+        
+        const label = (device.label || '').toLowerCase();
+        if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('main')) {
+          defaultDeviceId = device.deviceId;
+        }
+      }
+      
+      select.value = defaultDeviceId;
+      
+      await activeCodeReader.decodeFromVideoDevice(defaultDeviceId, 'camera-video', (result, error) => {
+        if (result) {
+          playScanBeep();
+          displayScanResult(result.getText(), result.getFormat()?.toString() || 'Unknown');
+          closeCameraModal();
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Camera initialization failed:', error);
+    showToast('Direct camera access not available. Opening fallback capture.');
+    closeCameraModal();
+    // Fallback: trigger camera capture input
+    document.getElementById('scan-camera-input')?.click();
+  }
+}
+
+async function closeCameraModal() {
+  const modal = document.getElementById('camera-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  setTimeout(() => {
+    modal.style.display = 'none';
+  }, 300);
+  
+  if (activeCodeReader) {
+    try {
+      await activeCodeReader.reset();
+    } catch (e) {
+      console.warn('Error resetting camera reader:', e);
+    }
+    activeCodeReader = null;
+  }
+}
+
+async function switchCamera(deviceId) {
+  if (!activeCodeReader) return;
+  try {
+    await activeCodeReader.reset();
+    await activeCodeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result, error) => {
+      if (result) {
+        playScanBeep();
+        displayScanResult(result.getText(), result.getFormat()?.toString() || 'Unknown');
+        closeCameraModal();
+      }
+    });
+  } catch (error) {
+    console.error('Failed to switch camera:', error);
+    showToast('Failed to switch camera');
+  }
+}
+
+function triggerCameraFallback() {
+  closeCameraModal();
+  document.getElementById('scan-camera-input')?.click();
+}
+
+function getOptimizedImageElement(img, maxDim = 1200) {
+  return new Promise((resolve) => {
+    const width = img.naturalWidth || img.width || 320;
+    const height = img.naturalHeight || img.height || 320;
+    
+    if (width <= maxDim && height <= maxDim) {
+      resolve({ img, canvas: null });
+      return;
+    }
+    
+    let newWidth = width;
+    let newHeight = height;
+    if (width > height) {
+      if (width > maxDim) {
+        newHeight = Math.round((height * maxDim) / width);
+        newWidth = maxDim;
+      }
+    } else {
+      if (height > maxDim) {
+        newWidth = Math.round((width * maxDim) / height);
+        newHeight = maxDim;
+      }
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+    
+    const resizedImg = new Image();
+    resizedImg.onload = () => resolve({ img: resizedImg, canvas });
+    resizedImg.onerror = () => resolve({ img, canvas: null });
+    resizedImg.src = canvas.toDataURL('image/jpeg', 0.85);
+  });
+}
+
+async function runDecoders(imgElement, canvasElement) {
+  // 1. jsQR on Canvas (if canvas is provided)
+  if (window.jsQR && canvasElement) {
+    try {
+      const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
+      const imageData = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
+      const code = window.jsQR(imageData.data, canvasElement.width, canvasElement.height);
+      if (code?.data) {
+        return { text: code.data, format: 'QR_CODE' };
+      }
+    } catch (error) {
+      console.warn('jsQR canvas decode failed', error);
+    }
+  } else if (window.jsQR && imgElement) {
+    // Fallback jsQR: Create a temporary canvas
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const width = imgElement.naturalWidth || imgElement.width || 320;
+      const height = imgElement.naturalHeight || imgElement.height || 320;
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(imgElement, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const code = window.jsQR(imageData.data, width, height);
+      if (code?.data) {
+        return { text: code.data, format: 'QR_CODE' };
+      }
+    } catch (error) {
+      console.warn('jsQR temp canvas decode failed', error);
+    }
+  }
+
+  // 2. BarcodeDetector (native browser, fast)
+  if ('BarcodeDetector' in window) {
+    try {
+      const detector = new BarcodeDetector({
+        formats: ['aztec', 'code_128', 'code_39', 'code_93', 'codabar', 'data_matrix', 'ean_13', 'ean_8', 'itf', 'pdf417', 'qr_code', 'upc_a', 'upc_e']
+      });
+      const [code] = await detector.detect(imgElement);
+      if (code) {
+        return { text: code.rawValue || '', format: code.format || 'Unknown' };
+      }
+    } catch (error) {
+      console.warn('BarcodeDetector failed', error);
+    }
+  }
+
+  // 3. ZXing
+  if (window.ZXing) {
+    try {
+      const reader = new ZXing.BrowserMultiFormatReader();
+      const result = await reader.decodeFromImageElement(imgElement);
+      return { text: result.getText() || '', format: result.getFormat()?.toString() || 'Unknown' };
+    } catch (error) {
+      // Ignore exception and let it cascade
+    }
+  }
+
+  return null;
+}
+
 async function decodeScanImage(img){
-  if(window.jsQR){
-    try{
-      const canvas=document.createElement('canvas');
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});
-      const width=img.naturalWidth||img.width||320;
-      const height=img.naturalHeight||img.height||320;
-      canvas.width=width;
-      canvas.height=height;
-      ctx.drawImage(img,0,0,width,height);
-      const imageData=ctx.getImageData(0,0,width,height);
-      const code=window.jsQR(imageData.data,width,height);
-      if(code?.data){
-        return {text:code.data,format:'QR_CODE'};
-      }
-    }catch(error){
-      console.warn('jsQR failed, trying other scanners', error);
-    }
+  // 1. Try decoding downscaled image first (extremely fast)
+  try {
+    const optimized = await getOptimizedImageElement(img, 1200);
+    const result = await runDecoders(optimized.img, optimized.canvas);
+    if (result) return result;
+  } catch (error) {
+    console.warn('Optimized decode failed, trying original size...', error);
   }
 
-  if('BarcodeDetector' in window){
-    try{
-      const detector=new BarcodeDetector({formats:['aztec','code_128','code_39','code_93','codabar','data_matrix','ean_13','ean_8','itf','pdf417','qr_code','upc_a','upc_e']});
-      const [code]=await detector.detect(img);
-      if(code){
-        return {text:code.rawValue||'',format:code.format||'Unknown'};
-      }
-    }catch(error){
-      console.warn('BarcodeDetector failed, falling back to ZXing', error);
-    }
-  }
+  // 2. Try decoding original image (last-resort fallback)
+  const result = await runDecoders(img, null);
+  if (result) return result;
 
-  if(!window.ZXing){
-    throw new Error('Scan library is not available');
-  }
-
-  const reader=new ZXing.BrowserMultiFormatReader();
-  const result=await reader.decodeFromImageElement(img);
-  return {text:result.getText?.()||'',format:result.getFormat?.()?.toString?.()||'Unknown'};
+  throw new Error('No readable code found');
 }
 
 async function handleScanFile(file){
@@ -1296,16 +1580,7 @@ async function handleScanFile(file){
     });
 
     const decoded=await decodeScanImage(preview);
-    const text=decoded.text||'';
-    const format=decoded.format||'Unknown';
-
-    document.getElementById('scan-format').textContent=format;
-    document.getElementById('scan-length').textContent=`${text.length} chars`;
-    document.getElementById('scan-meta-grid').style.display='grid';
-    output.textContent=text || '(No text decoded)';
-    output.style.display='block';
-    scanState.textContent='Decoded successfully. The original output is shown below.';
-    showToast('Scan complete');
+    displayScanResult(decoded.text, decoded.format);
   } catch(error){
     console.error(error);
     scanState.textContent='No readable QR/barcode was found in this image. Try a clearer, well-lit photo.';
