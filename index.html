@@ -834,6 +834,20 @@ function vcardTab(t,el){
 
 // ===== QR CODE =====
 let qrInstance=null;
+function triggerDownload(href, filename) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    a.remove();
+    if (href.startsWith('blob:')) URL.revokeObjectURL(href);
+  }, 250);
+}
+
 function makeQR(containerId,text,size,fg,bg){
   const el=document.getElementById(containerId);
   el.innerHTML='';
@@ -864,14 +878,27 @@ function downloadQR(fmt){
   const wrap=document.getElementById('qr-render');
   const img=wrap.querySelector('img');
   const canvas=wrap.querySelector('canvas');
-  const a=document.createElement('a');
-  if(fmt==='png'&&img){a.href=img.src;a.download='qr-code.png';}
-  else if(fmt==='svg'&&img){
+
+  if(fmt==='png'){
+    const href = img ? img.src : canvas ? canvas.toDataURL('image/png') : null;
+    if(href){triggerDownload(href,'qr-code.png');showToast('Downloaded!');return;}
+  }
+
+  if(fmt==='svg'&&img){
     const size=+document.getElementById('qr-size').value;
     const svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><image href="${img.src}" width="${size}" height="${size}"/></svg>`;
-    a.href='data:image/svg+xml;base64,'+btoa(svgStr);a.download='qr-code.svg';
-  } else if(canvas){a.href=canvas.toDataURL('image/'+(fmt==='png'?'png':'jpeg'));a.download='qr-code.'+fmt;}
-  a.click();showToast('Downloaded!');
+    triggerDownload('data:image/svg+xml;base64,'+btoa(svgStr),'qr-code.svg');
+    showToast('Downloaded!');
+    return;
+  }
+
+  if(canvas){
+    triggerDownload(canvas.toDataURL('image/' + (fmt==='png'?'png':'jpeg')),'qr-code.'+fmt);
+    showToast('Downloaded!');
+    return;
+  }
+
+  showToast('Nothing to download');
 }
 
 function copyQRdata(){
@@ -905,21 +932,26 @@ function generateBarcode(){
 
 function downloadBarcode(fmt){
   const svg=document.getElementById('bc-svg');
-  const a=document.createElement('a');
+
   if(fmt==='svg'){
     const svgData=new XMLSerializer().serializeToString(svg);
-    a.href='data:image/svg+xml;base64,'+btoa(svgData);a.download='barcode.svg';
-  } else {
-    const canvas=document.createElement('canvas');
-    const bb=svg.getBoundingClientRect();
-    canvas.width=bb.width||400;canvas.height=bb.height||120;
-    const ctx=canvas.getContext('2d');
-    const img=new Image();
-    const svgData=new XMLSerializer().serializeToString(svg);
-    img.onload=()=>{ctx.drawImage(img,0,0);a.href=canvas.toDataURL('image/png');a.download='barcode.png';a.click();showToast('Downloaded!');};
-    img.src='data:image/svg+xml;base64,'+btoa(svgData);return;
+    triggerDownload('data:image/svg+xml;base64,'+btoa(svgData),'barcode.svg');
+    showToast('Downloaded!');
+    return;
   }
-  a.click();showToast('Downloaded!');
+
+  const canvas=document.createElement('canvas');
+  const bb=svg.getBoundingClientRect();
+  canvas.width=bb.width||400;canvas.height=bb.height||120;
+  const ctx=canvas.getContext('2d');
+  const img=new Image();
+  const svgData=new XMLSerializer().serializeToString(svg);
+  img.onload=()=>{
+    ctx.drawImage(img,0,0);
+    triggerDownload(canvas.toDataURL('image/png'),'barcode.png');
+    showToast('Downloaded!');
+  };
+  img.src='data:image/svg+xml;base64,'+btoa(svgData);
 }
 
 // ===== VCARD =====
@@ -972,10 +1004,16 @@ function generateVcard(){
 function downloadVcardQR(fmt){
   if(fmt==='vcf'){
     const blob=new Blob([buildVcardStr()],{type:'text/vcard'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='contact.vcf';a.click();showToast('vCard downloaded!');
-  } else {
-    const img=document.getElementById('vc-render').querySelector('img');
-    if(img){const a=document.createElement('a');a.href=img.src;a.download='vcard-qr.png';a.click();showToast('Downloaded!');}
+    const href=URL.createObjectURL(blob);
+    triggerDownload(href,'contact.vcf');
+    showToast('vCard downloaded!');
+    return;
+  }
+
+  const img=document.getElementById('vc-render').querySelector('img');
+  if(img){
+    triggerDownload(img.src,'vcard-qr.png');
+    showToast('Downloaded!');
   }
 }
 
@@ -999,7 +1037,10 @@ function escWifi(s){return s.replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/
 
 function downloadWifiQR(fmt){
   const img=document.getElementById('wifi-render').querySelector('img');
-  if(img){const a=document.createElement('a');a.href=img.src;a.download='wifi-qr.png';a.click();showToast('Downloaded!');}
+  if(img){
+    triggerDownload(img.src,'wifi-qr.png');
+    showToast('Downloaded!');
+  }
 }
 function copyWifiQRdata(){
   const img=document.getElementById('wifi-render').querySelector('img');
@@ -1026,7 +1067,10 @@ function generateTxt(){
 
 function downloadTxtQR(fmt){
   const img=document.getElementById('txt-render').querySelector('img');
-  if(img){const a=document.createElement('a');a.href=img.src;a.download='text-qr.png';a.click();showToast('Downloaded!');}
+  if(img){
+    triggerDownload(img.src,'text-qr.png');
+    showToast('Downloaded!');
+  }
 }
 
 // ===== EMAIL =====
@@ -1067,7 +1111,10 @@ function generatePhone(){livePhone();}
 // Generic download for simple QR panels
 function downloadSimpleQR(renderId,filename){
   const img=document.getElementById(renderId)?.querySelector('img');
-  if(img){const a=document.createElement('a');a.href=img.src;a.download=filename+'.png';a.click();showToast('Downloaded!');}
+  if(img){
+    triggerDownload(img.src,filename+'.png');
+    showToast('Downloaded!');
+  }
 }
 
 // ===== HISTORY =====
@@ -1102,7 +1149,10 @@ function renderHistory(){
 
 function viewHistoryItem(i){
   const h=history[i];
-  if(h.thumb){const a=document.createElement('a');a.href=h.thumb;a.download=h.type.toLowerCase()+'-'+i+'.png';a.click();showToast('Downloaded!');}
+  if(h.thumb){
+    triggerDownload(h.thumb,h.type.toLowerCase()+'-'+i+'.png');
+    showToast('Downloaded!');
+  }
 }
 
 function clearHistory(){
