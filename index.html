@@ -6,6 +6,8 @@
 <title>CodeCraft — Scanner & Generator Suite</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -132,6 +134,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .empty-text{font-size:14px;font-weight:500;margin-bottom:6px;color:var(--text2)}
 .empty-sub{font-size:12px}
 
+/* Scan feature */
+.scan-dropzone{border:1px dashed var(--border2);border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(55,138,221,0.08),rgba(17,24,39,0.95));padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;cursor:pointer;transition:all var(--transition)}
+.scan-dropzone:hover,.scan-dropzone.dragover{border-color:var(--blue-400);background:linear-gradient(135deg,rgba(55,138,221,0.12),rgba(17,24,39,1));transform:translateY(-1px)}
+.scan-dropzone-icon{width:52px;height:52px;border-radius:14px;background:rgba(55,138,221,0.14);display:grid;place-items:center;font-size:22px;color:var(--blue-200)}
+.scan-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,0.04);color:var(--text2);font-size:11px;font-weight:600}
+.scan-meta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+.scan-meta-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--text2);line-height:1.5}
+.scan-meta-box strong{display:block;color:var(--text);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px}
+#scan-output{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--text2);white-space:pre-wrap;word-break:break-word}
+
+body.light-mode .scan-dropzone{background:linear-gradient(135deg,rgba(55,138,221,0.14),rgba(255,255,255,0.98))}
+body.light-mode .scan-dropzone:hover,.light-mode .scan-dropzone.dragover{background:linear-gradient(135deg,rgba(55,138,221,0.18),rgba(255,255,255,1))}
+
 /* Toast */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 20px;font-size:13px;font-weight:500;color:var(--text);z-index:1000;display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(10px);transition:all 0.3s ease;pointer-events:none}
 .toast.show{opacity:1;transform:translateY(0)}
@@ -255,6 +270,10 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
     </button>
 
     <div class="nav-section" style="margin-top:16px">Library</div>
+    <button class="nav-item" onclick="nav('scan',this)" title="Scan QR / Barcode">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>
+      Scan
+    </button>
     <button class="nav-item" onclick="nav('history',this)" title="History">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"/></svg>
       History
@@ -311,6 +330,7 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
       <button class="mobile-menu-item" onclick="nav('sms',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>SMS QR</button>
       <button class="mobile-menu-item" onclick="nav('phone',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 10.9a16 16 0 0 0 5.8 5.8l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Phone QR</button>
       <div class="mobile-menu-title">Library</div>
+      <button class="mobile-menu-item" onclick="nav('scan',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>Scan</button>
       <button class="mobile-menu-item" onclick="nav('history',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"/></svg>History</button>
       <button class="mobile-menu-item" onclick="nav('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>About</button>
     </div>
@@ -451,6 +471,48 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
             <button class="btn btn-primary btn-sm" onclick="downloadBarcode('png')">↓ PNG</button>
             <button class="btn btn-ghost btn-sm" onclick="downloadBarcode('svg')">↓ SVG</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan QR / Barcode -->
+    <div class="panel" id="panel-scan">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Scan QR / Barcode</div>
+          <div class="section-desc">Upload a saved image or drag one here to read the original text instantly.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Choose image</label>
+        <div id="scan-dropzone" class="scan-dropzone" tabindex="0" role="button" aria-label="Upload a QR or barcode image">
+          <input id="scan-input" type="file" accept="image/*" hidden onchange="handleScanFile(this.files[0])"/>
+          <div class="scan-dropzone-icon">📷</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">Select image or drag & drop</div>
+          <div class="input-hint" style="margin-top:0">Works with QR codes, UPC/EAN, Code128, and other common formats</div>
+          <div class="scan-chip">Supports PNG, JPG, WEBP, and GIF</div>
+        </div>
+      </div>
+      <div class="output-grid">
+        <div class="output-card">
+          <span class="output-label">Preview</span>
+          <div class="qr-canvas-wrap" id="scan-preview-wrap" style="min-height:180px;justify-content:center;align-items:center;background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(17,24,39,0.85));">
+            <img id="scan-preview" alt="Selected scan preview" style="max-width:100%;max-height:260px;border-radius:10px;display:none;"/>
+            <div id="scan-placeholder" style="font-size:13px;color:var(--text3);text-align:center;line-height:1.6">No image selected yet.<br/>Choose a file or drop an image here.</div>
+          </div>
+          <div class="dl-btns">
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('scan-input').click()" type="button">Choose file</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearScan()" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="output-card" style="justify-content:flex-start;align-items:flex-start">
+          <span class="output-label">Decoded output</span>
+          <div id="scan-state" style="font-size:13px;color:var(--text2);line-height:1.6">Upload an image to decode the original content below.</div>
+          <div class="scan-meta-grid" id="scan-meta-grid" style="display:none">
+            <div class="scan-meta-box"><strong>Format</strong><span id="scan-format">—</span></div>
+            <div class="scan-meta-box"><strong>Length</strong><span id="scan-length">—</span></div>
+          </div>
+          <pre id="scan-output" style="display:none;margin-top:12px;width:100%"></pre>
         </div>
       </div>
     </div>
@@ -688,6 +750,7 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 const pageMeta={
   qr:{title:'QR Code Generator',sub:'Create custom QR codes with colors, logos, and styles'},
   barcode:{title:'Barcode Generator',sub:'Generate industry-standard barcodes for print and digital use'},
+  scan:{title:'Scan QR / Barcode',sub:'Upload a QR or barcode image to decode its original text instantly'},
   vcard:{title:'vCard Generator',sub:'Create a scannable contact card — share your details instantly'},
   wifi:{title:'WiFi QR Generator',sub:"Let guests connect to your network without typing passwords"},
   text:{title:'Text & URL QR',sub:'Encode any text, link, or multi-line content into a QR code'},
@@ -1051,6 +1114,119 @@ function clearHistory(){
 
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// ===== SCAN FEATURE =====
+function setupScanDropzone(){
+  const dropzone=document.getElementById('scan-dropzone');
+  if(!dropzone)return;
+
+  const openPicker=()=>document.getElementById('scan-input')?.click();
+  dropzone.addEventListener('click',(e)=>{if(e.target===dropzone||e.target.closest('#scan-dropzone'))openPicker();});
+  dropzone.addEventListener('keydown',(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPicker();}});
+
+  ['dragenter','dragover'].forEach(evt=>dropzone.addEventListener(evt,(e)=>{e.preventDefault();e.stopPropagation();dropzone.classList.add('dragover');}));
+  ['dragleave','dragend','drop'].forEach(evt=>dropzone.addEventListener(evt,(e)=>{e.preventDefault();e.stopPropagation();dropzone.classList.remove('dragover');}));
+  dropzone.addEventListener('drop',(e)=>{
+    const file=e.dataTransfer?.files?.[0];
+    if(file){handleScanFile(file);} 
+  });
+}
+
+function clearScan(){
+  const input=document.getElementById('scan-input');
+  if(input)input.value='';
+  document.getElementById('scan-preview').style.display='none';
+  document.getElementById('scan-preview').removeAttribute('src');
+  document.getElementById('scan-placeholder').style.display='block';
+  document.getElementById('scan-state').textContent='Upload an image to decode the original content below.';
+  document.getElementById('scan-meta-grid').style.display='none';
+  document.getElementById('scan-output').style.display='none';
+  document.getElementById('scan-output').textContent='';
+}
+
+async function decodeScanImage(img){
+  if(window.jsQR){
+    try{
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      const width=img.naturalWidth||img.width||320;
+      const height=img.naturalHeight||img.height||320;
+      canvas.width=width;
+      canvas.height=height;
+      ctx.drawImage(img,0,0,width,height);
+      const imageData=ctx.getImageData(0,0,width,height);
+      const code=window.jsQR(imageData.data,width,height);
+      if(code?.data){
+        return {text:code.data,format:'QR_CODE'};
+      }
+    }catch(error){
+      console.warn('jsQR failed, trying other scanners', error);
+    }
+  }
+
+  if('BarcodeDetector' in window){
+    try{
+      const detector=new BarcodeDetector({formats:['aztec','code_128','code_39','code_93','codabar','data_matrix','ean_13','ean_8','itf','pdf417','qr_code','upc_a','upc_e']});
+      const [code]=await detector.detect(img);
+      if(code){
+        return {text:code.rawValue||'',format:code.format||'Unknown'};
+      }
+    }catch(error){
+      console.warn('BarcodeDetector failed, falling back to ZXing', error);
+    }
+  }
+
+  if(!window.ZXing){
+    throw new Error('Scan library is not available');
+  }
+
+  const reader=new ZXing.BrowserMultiFormatReader();
+  const result=await reader.decodeFromImageElement(img);
+  return {text:result.getText?.()||'',format:result.getFormat?.()?.toString?.()||'Unknown'};
+}
+
+async function handleScanFile(file){
+  if(!file){return;}
+
+  const preview=document.getElementById('scan-preview');
+  const placeholder=document.getElementById('scan-placeholder');
+  const output=document.getElementById('scan-output');
+  const scanState=document.getElementById('scan-state');
+
+  const objectUrl=URL.createObjectURL(file);
+  preview.style.display='block';
+  placeholder.style.display='none';
+  scanState.textContent='Scanning image…';
+  output.style.display='none';
+  output.textContent='';
+  document.getElementById('scan-meta-grid').style.display='none';
+
+  try{
+    await new Promise((resolve,reject)=>{
+      preview.onload=resolve;
+      preview.onerror=()=>reject(new Error('Failed to load image'));
+      preview.src=objectUrl;
+    });
+
+    const decoded=await decodeScanImage(preview);
+    const text=decoded.text||'';
+    const format=decoded.format||'Unknown';
+
+    document.getElementById('scan-format').textContent=format;
+    document.getElementById('scan-length').textContent=`${text.length} chars`;
+    document.getElementById('scan-meta-grid').style.display='grid';
+    output.textContent=text || '(No text decoded)';
+    output.style.display='block';
+    scanState.textContent='Decoded successfully. The original output is shown below.';
+    showToast('Scan complete');
+  } catch(error){
+    console.error(error);
+    scanState.textContent='No readable QR/barcode was found in this image. Try a clearer, well-lit photo.';
+    showToast('No code found in that image');
+  } finally{
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 // Init
 window.addEventListener('load',()=>{
   const loader=document.getElementById('loader');
@@ -1062,6 +1238,7 @@ window.addEventListener('load',()=>{
   if(saved==='light'){document.body.classList.add('light-mode');document.querySelector('.theme-toggle').firstChild.nextSibling.textContent=' Dark mode';}
   document.getElementById('qr-style-row').style.display='none';
   updateBarcodeHint();
+  setupScanDropzone();
 });
 </script>
 </body>
