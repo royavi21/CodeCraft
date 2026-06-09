@@ -1,6 +1,6 @@
 # CodeCraft — Scanner & Generator Suite
 
-🌐 **Live Demo:** https://royavi21.github.io/QR_Code_Generator/
+🌐 **Live Demo:** [CODE_CRAFT](https://royavi21.github.io/CodeCraft/)
 
 CodeCraft is a modern all-in-one QR Code and Barcode Generator web application built with HTML, CSS, and JavaScript. It provides multiple code-generation tools within a clean, responsive, and user-friendly interface.
 
