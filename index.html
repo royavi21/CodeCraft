@@ -841,6 +841,13 @@
       word-break: break-word
     }
 
+    .scan-result-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      width: 100%
+    }
+
     body.light-mode .scan-dropzone {
       background: linear-gradient(135deg, rgba(55, 138, 221, 0.14), rgba(255, 255, 255, 0.98))
     }
@@ -1813,6 +1820,9 @@
               <div class="scan-meta-box"><strong>Format</strong><span id="scan-format">—</span></div>
               <div class="scan-meta-box"><strong>Length</strong><span id="scan-length">—</span></div>
             </div>
+            <div class="scan-result-actions" id="scan-result-actions" style="display:none">
+              <button class="btn btn-primary btn-sm" onclick="copyScanResult()" type="button">⎘ Copy result</button>
+            </div>
             <pre id="scan-output" style="display:none;margin-top:12px;width:100%"></pre>
           </div>
         </div>
@@ -2621,13 +2631,26 @@
         document.getElementById('scan-placeholder').style.display = 'block';
         document.getElementById('scan-state').textContent = 'Upload an image to decode the original content below.';
         document.getElementById('scan-meta-grid').style.display = 'none';
+        document.getElementById('scan-result-actions').style.display = 'none';
         document.getElementById('scan-output').style.display = 'none';
         document.getElementById('scan-output').textContent = '';
+        lastScanResult = '';
       }
 
-      let activeCodeReader = null;
       let torchOn = false;
       let currentVideoTrack = null;
+      let cameraStream = null;
+      let scanLoopId = null;
+      let scanLocked = false;
+      let frameBusy = false;
+      let lastZxingAttempt = 0;
+      let liveBarcodeDetector = null;
+      let liveZxingReader = null;
+      let lastScanResult = '';
+      const scanCanvas = document.createElement('canvas');
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      const scanCanvasSmall = document.createElement('canvas');
+      const scanCtxSmall = scanCanvasSmall.getContext('2d', { willReadFrequently: true });
 
       function playScanBeep() {
         try {
@@ -2650,19 +2673,232 @@
       function displayScanResult(text, format) {
         const output = document.getElementById('scan-output');
         const scanState = document.getElementById('scan-state');
+        const safeText = text || '';
 
+        lastScanResult = safeText;
         document.getElementById('scan-format').textContent = format;
-        document.getElementById('scan-length').textContent = `${text.length} chars`;
+        document.getElementById('scan-length').textContent = `${safeText.length} chars`;
         document.getElementById('scan-meta-grid').style.display = 'grid';
-        output.textContent = text || '(No text decoded)';
+        document.getElementById('scan-result-actions').style.display = safeText ? 'flex' : 'none';
+        output.textContent = safeText || '(No text decoded)';
         output.style.display = 'block';
         scanState.textContent = 'Decoded successfully. The original output is shown below.';
         showToast('Scan complete');
       }
 
+      function copyScanResult() {
+        if (!lastScanResult) {
+          showToast('Nothing to copy');
+          return;
+        }
+        const write = navigator.clipboard?.writeText
+          ? navigator.clipboard.writeText(lastScanResult)
+          : Promise.reject(new Error('Clipboard API unavailable'));
+        write.then(() => showToast('Copied to clipboard!')).catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = lastScanResult;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard!');
+          } catch (e) {
+            showToast('Copy failed — select the text manually');
+          }
+          document.body.removeChild(ta);
+        });
+      }
+
+      function pickDefaultCameraId(devices) {
+        if (!devices.length) return '';
+        let preferred = devices[0].deviceId;
+        for (const device of devices) {
+          const label = (device.label || '').toLowerCase();
+          if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('main')) {
+            preferred = device.deviceId;
+            break;
+          }
+        }
+        return preferred;
+      }
+
+      function populateCameraSelect(devices, selectedId) {
+        const select = document.getElementById('camera-select');
+        if (!select) return;
+        select.innerHTML = '';
+        devices.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || `Camera ${index + 1}`;
+          select.appendChild(option);
+        });
+        if (selectedId) select.value = selectedId;
+      }
+
+      async function listVideoDevices() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        return devices.filter((device) => device.kind === 'videoinput');
+      }
+
+      function buildCameraConstraints(deviceId) {
+        const video = {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        };
+        if (deviceId) {
+          video.deviceId = { exact: deviceId };
+        } else {
+          video.facingMode = { ideal: 'environment' };
+        }
+        return { video, audio: false };
+      }
+
+      async function startCameraStream(deviceId) {
+        stopCameraStream();
+        cameraStream = await navigator.mediaDevices.getUserMedia(buildCameraConstraints(deviceId));
+        const video = document.getElementById('camera-video');
+        video.srcObject = cameraStream;
+        currentVideoTrack = cameraStream.getVideoTracks()[0] || null;
+        torchOn = false;
+        updateFlashButton();
+        await video.play();
+      }
+
+      function stopCameraStream() {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((track) => track.stop());
+          cameraStream = null;
+        }
+        const video = document.getElementById('camera-video');
+        if (video) video.srcObject = null;
+        currentVideoTrack = null;
+      }
+
+      function stopLiveScanLoop() {
+        if (scanLoopId) {
+          cancelAnimationFrame(scanLoopId);
+          scanLoopId = null;
+        }
+        frameBusy = false;
+      }
+
+      function initLiveDecoders() {
+        if ('BarcodeDetector' in window && !liveBarcodeDetector) {
+          try {
+            liveBarcodeDetector = new BarcodeDetector({
+              formats: ['aztec', 'code_128', 'code_39', 'code_93', 'codabar', 'data_matrix', 'ean_13', 'ean_8', 'itf', 'pdf417', 'qr_code', 'upc_a', 'upc_e']
+            });
+          } catch (e) {
+            liveBarcodeDetector = null;
+          }
+        }
+        if (window.ZXing && !liveZxingReader) {
+          liveZxingReader = new ZXing.BrowserMultiFormatReader();
+        }
+      }
+
+      function onLiveScanSuccess(text, format) {
+        if (scanLocked || !text) return;
+        scanLocked = true;
+        stopLiveScanLoop();
+        playScanBeep();
+        displayScanResult(text, format);
+        closeCameraModal(true);
+      }
+
+      async function decodeLiveFrame(video) {
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        if (!width || !height) return null;
+
+        scanCanvas.width = width;
+        scanCanvas.height = height;
+        scanCtx.drawImage(video, 0, 0, width, height);
+
+        if (liveBarcodeDetector) {
+          try {
+            const codes = await liveBarcodeDetector.detect(scanCanvas);
+            if (codes?.length) {
+              return { text: codes[0].rawValue || '', format: codes[0].format || 'Unknown' };
+            }
+          } catch (e) { }
+        }
+
+        const maxSmall = 640;
+        const cropRatio = 0.82;
+        const cropW = Math.round(width * cropRatio);
+        const cropH = Math.round(height * cropRatio);
+        const cropX = Math.round((width - cropW) / 2);
+        const cropY = Math.round((height - cropH) / 2);
+        let smallW = cropW;
+        let smallH = cropH;
+        if (cropW > maxSmall || cropH > maxSmall) {
+          if (cropW >= cropH) {
+            smallH = Math.round((cropH * maxSmall) / cropW);
+            smallW = maxSmall;
+          } else {
+            smallW = Math.round((cropW * maxSmall) / cropH);
+            smallH = maxSmall;
+          }
+        }
+        scanCanvasSmall.width = smallW;
+        scanCanvasSmall.height = smallH;
+        scanCtxSmall.drawImage(scanCanvas, cropX, cropY, cropW, cropH, 0, 0, smallW, smallH);
+
+        if (window.jsQR) {
+          try {
+            const imageData = scanCtxSmall.getImageData(0, 0, smallW, smallH);
+            const code = window.jsQR(imageData.data, smallW, smallH, { inversionAttempts: 'attemptBoth' });
+            if (code?.data) return { text: code.data, format: 'QR_CODE' };
+          } catch (e) { }
+        }
+
+        const now = performance.now();
+        if (liveZxingReader && now - lastZxingAttempt >= 350) {
+          lastZxingAttempt = now;
+          try {
+            const result = await liveZxingReader.decodeFromImageElement(scanCanvas);
+            if (result) {
+              return { text: result.getText() || '', format: result.getFormat()?.toString() || 'Unknown' };
+            }
+          } catch (e) { }
+        }
+
+        return null;
+      }
+
+      function startLiveScanLoop() {
+        stopLiveScanLoop();
+        const video = document.getElementById('camera-video');
+
+        const tick = async () => {
+          if (scanLocked) return;
+          scanLoopId = requestAnimationFrame(tick);
+          if (frameBusy || video.readyState < video.HAVE_ENOUGH_DATA) return;
+
+          frameBusy = true;
+          try {
+            const decoded = await decodeLiveFrame(video);
+            if (decoded?.text) onLiveScanSuccess(decoded.text, decoded.format);
+          } finally {
+            frameBusy = false;
+          }
+        };
+
+        scanLoopId = requestAnimationFrame(tick);
+      }
+
       async function openCameraModal() {
         const modal = document.getElementById('camera-modal');
         if (!modal) return;
+
+        scanLocked = false;
+        lastZxingAttempt = 0;
+        initLiveDecoders();
+
         modal.style.display = 'flex';
         modal.offsetHeight;
         modal.classList.add('open');
@@ -2671,64 +2907,41 @@
         if (select) select.innerHTML = '<option value="">Requesting camera permission...</option>';
 
         try {
-          if (!window.ZXing) throw new Error('ZXing library is not loaded');
+          if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera API unavailable');
 
-          activeCodeReader = new ZXing.BrowserMultiFormatReader();
-          const videoDevices = await activeCodeReader.listVideoInputDevices();
-          if (!videoDevices || videoDevices.length === 0) throw new Error('No camera devices found');
-
-          if (select) {
-            select.innerHTML = '';
-            let defaultDeviceId = videoDevices[0].deviceId;
-            for (const device of videoDevices) {
-              const option = document.createElement('option');
-              option.value = device.deviceId;
-              option.textContent = device.label || `Camera ${select.length + 1}`;
-              select.appendChild(option);
-              const label = (device.label || '').toLowerCase();
-              if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('main')) defaultDeviceId = device.deviceId;
-            }
-            select.value = defaultDeviceId;
-
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: defaultDeviceId } } });
-            document.getElementById('camera-video').srcObject = stream;
-            currentVideoTrack = stream.getVideoTracks()[0];
-            torchOn = false;
-            updateFlashButton();
-
-            await activeCodeReader.decodeFromVideoDevice(defaultDeviceId, 'camera-video', (result, error) => {
-              if (result) {
-                playScanBeep();
-                displayScanResult(result.getText(), result.getFormat()?.toString() || 'Unknown');
-                closeCameraModal();
-              }
-            });
+          let videoDevices = await listVideoDevices();
+          if (!videoDevices.length || !videoDevices[0].label) {
+            const tempStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            tempStream.getTracks().forEach((track) => track.stop());
+            videoDevices = await listVideoDevices();
           }
+          if (!videoDevices.length) throw new Error('No camera devices found');
+
+          const defaultDeviceId = pickDefaultCameraId(videoDevices);
+          populateCameraSelect(videoDevices, defaultDeviceId);
+          await startCameraStream(defaultDeviceId);
+          startLiveScanLoop();
         } catch (error) {
           console.error('Camera initialization failed:', error);
           showToast('Direct camera access not available. Opening fallback capture.');
-          closeCameraModal();
+          closeCameraModal(true);
           document.getElementById('scan-camera-input')?.click();
         }
       }
 
-      async function closeCameraModal() {
+      async function closeCameraModal(skipDelay = false) {
         const modal = document.getElementById('camera-modal');
         if (!modal) return;
+
+        scanLocked = true;
+        stopLiveScanLoop();
+
+        if (torchOn && currentVideoTrack) await toggleFlash(true);
+        stopCameraStream();
+
         modal.classList.remove('open');
-        setTimeout(() => modal.style.display = 'none', 300);
-
-        if (torchOn) toggleFlash(true);
-
-        if (activeCodeReader) {
-          try {
-            await activeCodeReader.reset();
-          } catch (e) {
-            console.warn('Error resetting camera reader:', e);
-          }
-          activeCodeReader = null;
-        }
-        currentVideoTrack = null;
+        const hideDelay = skipDelay ? 0 : 300;
+        setTimeout(() => { modal.style.display = 'none'; }, hideDelay);
       }
 
       function updateFlashButton() {
@@ -2756,21 +2969,13 @@
       }
 
       async function switchCamera(deviceId) {
-        if (!activeCodeReader) return;
+        if (!deviceId || scanLocked) return;
         try {
-          await activeCodeReader.reset();
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
-          document.getElementById('camera-video').srcObject = stream;
-          currentVideoTrack = stream.getVideoTracks()[0];
-          torchOn = false;
-          updateFlashButton();
-          await activeCodeReader.decodeFromVideoDevice(deviceId, 'camera-video', (result, error) => {
-            if (result) {
-              playScanBeep();
-              displayScanResult(result.getText(), result.getFormat()?.toString() || 'Unknown');
-              closeCameraModal();
-            }
-          });
+          stopLiveScanLoop();
+          await startCameraStream(deviceId);
+          scanLocked = false;
+          lastZxingAttempt = 0;
+          startLiveScanLoop();
         } catch (error) {
           console.error('Failed to switch camera:', error);
           showToast('Failed to switch camera');
