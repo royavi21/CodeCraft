@@ -139,6 +139,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .scan-dropzone:hover,.scan-dropzone.dragover{border-color:var(--blue-400);background:linear-gradient(135deg,rgba(55,138,221,0.12),rgba(17,24,39,1));transform:translateY(-1px)}
 .scan-dropzone-icon{width:52px;height:52px;border-radius:14px;background:rgba(55,138,221,0.14);display:grid;place-items:center;font-size:22px;color:var(--blue-200)}
 .scan-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,0.04);color:var(--text2);font-size:11px;font-weight:600}
+.scan-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.nav-item.scan-highlight{margin:2px 0 10px;border:1px solid rgba(55,138,221,0.3);background:linear-gradient(135deg,rgba(55,138,221,0.14),rgba(17,24,39,0.96));box-shadow:0 10px 24px rgba(55,138,221,0.08)}
+.nav-item.scan-highlight:hover{background:linear-gradient(135deg,rgba(55,138,221,0.18),rgba(17,24,39,1));border-color:var(--blue-400)}
+.nav-item.scan-highlight.active{background:linear-gradient(135deg,rgba(55,138,221,0.22),rgba(8,17,31,1));border-color:var(--blue-400);color:var(--blue-100)}
 .scan-meta-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
 .scan-meta-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--text2);line-height:1.5}
 .scan-meta-box strong{display:block;color:var(--text);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px}
@@ -166,6 +170,7 @@ body.light-mode .scan-dropzone:hover,.light-mode .scan-dropzone.dragover{backgro
 
 /* Mobile menu */
 .mobile-menu-btn{display:none}
+.mobile-scan-btn{display:none}
 .mobile-menu-panel{position:fixed;top:68px;right:12px;z-index:1100;width:min(320px,calc(100vw - 24px));background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:0 24px 40px rgba(0,0,0,0.35);padding:8px;max-height:80vh;overflow-y:auto;display:none}
 .mobile-menu-grid{display:grid;gap:4px}
 .mobile-menu-item{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--text2);font-family:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;transition:all var(--transition)}
@@ -182,6 +187,7 @@ body.light-mode .scan-dropzone:hover,.light-mode .scan-dropzone.dragover{backgro
   body{overflow-x:hidden;overflow-y:auto}
   .sidebar{display:none}
   .mobile-menu-btn{display:inline-flex;align-items:center;gap:6px}
+  .mobile-scan-btn{display:inline-flex;align-items:center;gap:6px}
   .mobile-menu-panel.open{display:block}
   .topbar{padding:16px 16px 12px}
   .workspace{padding:16px}
@@ -193,7 +199,7 @@ body.light-mode .scan-dropzone:hover,.light-mode .scan-dropzone.dragover{backgro
 
 @media (max-width:640px){
   .topbar{align-items:flex-start;flex-direction:column}
-  .topbar-actions{width:100%;justify-content:flex-end}
+  .topbar-actions{width:100%;justify-content:center;gap:8px}
   .btn-sm{padding:7px 10px;font-size:11px}
 }
 
@@ -234,8 +240,15 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
   </div>
 
   <div class="nav">
+    <div class="nav-section">Quick start</div>
+    <button class="nav-item scan-highlight active" onclick="nav('scan',this)" title="Scan QR / Barcode">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>
+      Scan
+      <span class="nav-badge">NEW</span>
+    </button>
+
     <div class="nav-section">Generators</div>
-    <button class="nav-item active" onclick="nav('qr',this)" title="QR Code Generator">
+    <button class="nav-item" onclick="nav('qr',this)" title="QR Code Generator">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4m-4-4v4m-7 0h3"/></svg>
       QR Code
       <span class="nav-badge">NEW</span>
@@ -270,10 +283,6 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
     </button>
 
     <div class="nav-section" style="margin-top:16px">Library</div>
-    <button class="nav-item" onclick="nav('scan',this)" title="Scan QR / Barcode">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>
-      Scan
-    </button>
     <button class="nav-item" onclick="nav('history',this)" title="History">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"/></svg>
       History
@@ -296,13 +305,17 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 <div class="main">
   <div class="topbar">
     <div>
-      <div class="page-title" id="page-title">QR Code Generator</div>
-      <div class="page-subtitle" id="page-subtitle">Create custom QR codes with colors, logos, and styles</div>
+      <div class="page-title" id="page-title">Scan QR / Barcode</div>
+      <div class="page-subtitle" id="page-subtitle">Upload an image or use your camera to decode a QR or barcode instantly.</div>
     </div>
     <div class="topbar-actions">
       <button class="btn btn-ghost btn-sm mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Open tool menu" type="button">
         <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
         Menu
+      </button>
+      <button class="btn btn-primary btn-sm mobile-scan-btn" onclick="nav('scan', document.querySelector('.nav-item.scan-highlight'))" type="button">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>
+        Scan
       </button>
       <button class="btn btn-ghost btn-sm" onclick="clearCurrent()" type="button">
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -321,7 +334,8 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
     </div>
     <div class="mobile-menu-title">Tools</div>
     <div class="mobile-menu-grid">
-      <button class="mobile-menu-item active" onclick="nav('qr',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4m-4-4v4m-7 0h3"/></svg>QR Code</button>
+      <button class="mobile-menu-item active" onclick="nav('scan',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>Scan</button>
+      <button class="mobile-menu-item" onclick="nav('qr',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4m-4-4v4m-7 0h3"/></svg>QR Code</button>
       <button class="mobile-menu-item" onclick="nav('barcode',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14M5 5v14M9 5v14M13 5v14M17 5v14M21 5v14"/></svg>Barcode</button>
       <button class="mobile-menu-item" onclick="nav('vcard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M8 10h8M8 14h5M12 6V4"/></svg>vCard</button>
       <button class="mobile-menu-item" onclick="nav('wifi',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>WiFi QR</button>
@@ -330,7 +344,6 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
       <button class="mobile-menu-item" onclick="nav('sms',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>SMS QR</button>
       <button class="mobile-menu-item" onclick="nav('phone',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 10.9a16 16 0 0 0 5.8 5.8l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Phone QR</button>
       <div class="mobile-menu-title">Library</div>
-      <button class="mobile-menu-item" onclick="nav('scan',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>Scan</button>
       <button class="mobile-menu-item" onclick="nav('history',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"/></svg>History</button>
       <button class="mobile-menu-item" onclick="nav('about',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>About</button>
     </div>
@@ -339,7 +352,7 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
   <div class="workspace">
 
     <!-- QR Code Generator -->
-    <div class="panel active" id="panel-qr">
+    <div class="panel" id="panel-qr">
       <div class="tabs">
         <button class="tab active" onclick="qrTab('url',this)">URL</button>
         <button class="tab" onclick="qrTab('text',this)">Text</button>
@@ -476,21 +489,22 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
     </div>
 
     <!-- Scan QR / Barcode -->
-    <div class="panel" id="panel-scan">
+    <div class="panel active" id="panel-scan">
       <div class="section-head">
         <div>
           <div class="section-title">Scan QR / Barcode</div>
-          <div class="section-desc">Upload a saved image or drag one here to read the original text instantly.</div>
+          <div class="section-desc">Upload a saved image, use your camera, or drag one here to read the original text instantly.</div>
         </div>
       </div>
       <div class="form-group">
-        <label>Choose image</label>
-        <div id="scan-dropzone" class="scan-dropzone" tabindex="0" role="button" aria-label="Upload a QR or barcode image">
+        <label>Choose image or open camera</label>
+        <div id="scan-dropzone" class="scan-dropzone" tabindex="0" role="button" aria-label="Upload or capture a QR or barcode image">
           <input id="scan-input" type="file" accept="image/*" hidden onchange="handleScanFile(this.files[0])"/>
+          <input id="scan-camera-input" type="file" accept="image/*" capture="environment" hidden onchange="handleScanFile(this.files[0])"/>
           <div class="scan-dropzone-icon">📷</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">Select image or drag & drop</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">Select image, use camera, or drag & drop</div>
           <div class="input-hint" style="margin-top:0">Works with QR codes, UPC/EAN, Code128, and other common formats</div>
-          <div class="scan-chip">Supports PNG, JPG, WEBP, and GIF</div>
+          <div class="scan-chip">Tip: on phones, the Camera button opens the device camera directly</div>
         </div>
       </div>
       <div class="output-grid">
@@ -500,8 +514,9 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
             <img id="scan-preview" alt="Selected scan preview" style="max-width:100%;max-height:260px;border-radius:10px;display:none;"/>
             <div id="scan-placeholder" style="font-size:13px;color:var(--text3);text-align:center;line-height:1.6">No image selected yet.<br/>Choose a file or drop an image here.</div>
           </div>
-          <div class="dl-btns">
+          <div class="dl-btns scan-actions">
             <button class="btn btn-primary btn-sm" onclick="document.getElementById('scan-input').click()" type="button">Choose file</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('scan-camera-input').click()" type="button">Use camera</button>
             <button class="btn btn-ghost btn-sm" onclick="clearScan()" type="button">Clear</button>
           </div>
         </div>
@@ -750,7 +765,7 @@ body.light-mode .qr-canvas-wrap{box-shadow:0 2px 8px rgba(0,0,0,0.06)}
 const pageMeta={
   qr:{title:'QR Code Generator',sub:'Create custom QR codes with colors, logos, and styles'},
   barcode:{title:'Barcode Generator',sub:'Generate industry-standard barcodes for print and digital use'},
-  scan:{title:'Scan QR / Barcode',sub:'Upload a QR or barcode image to decode its original text instantly'},
+  scan:{title:'Scan QR / Barcode',sub:'Upload an image or use your camera to decode a QR or barcode instantly'},
   vcard:{title:'vCard Generator',sub:'Create a scannable contact card — share your details instantly'},
   wifi:{title:'WiFi QR Generator',sub:"Let guests connect to your network without typing passwords"},
   text:{title:'Text & URL QR',sub:'Encode any text, link, or multi-line content into a QR code'},
@@ -769,6 +784,26 @@ function closeMobileMenu(){
   document.getElementById('mobile-menu-panel')?.classList.remove('open');
 }
 
+function updateMobileScanButton(activeId){
+  const btn=document.querySelector('.mobile-scan-btn');
+  if(!btn)return;
+
+  const isScanPanel=activeId==='scan';
+  btn.innerHTML=isScanPanel?`
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m0 4h4m-4-4v4m-7 0h3"/></svg>
+    QR Code
+  `:`
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M20 7V4a1 1 0 0 1 1 1v3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M20 17v3a1 1 0 0 0 1-1v-3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h4v4h-4z"/></svg>
+    Scan
+  `;
+
+  btn.onclick=()=>{
+    const nextId=isScanPanel?'qr':'scan';
+    const targetEl=document.querySelector(nextId==='scan' ? '.nav-item.scan-highlight' : '.nav-item');
+    nav(nextId,targetEl);
+  };
+}
+
 function nav(id,el){
   document.querySelectorAll('.nav-item, .mobile-menu-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -777,6 +812,7 @@ function nav(id,el){
   if(panel)panel.classList.add('active');
   document.getElementById('page-title').textContent=pageMeta[id]?.title||id;
   document.getElementById('page-subtitle').textContent=pageMeta[id]?.sub||'';
+  updateMobileScanButton(id);
   closeMobileMenu();
   if(id==='history')renderHistory();
 }
@@ -1183,7 +1219,9 @@ function setupScanDropzone(){
 
 function clearScan(){
   const input=document.getElementById('scan-input');
+  const cameraInput=document.getElementById('scan-camera-input');
   if(input)input.value='';
+  if(cameraInput)cameraInput.value='';
   document.getElementById('scan-preview').style.display='none';
   document.getElementById('scan-preview').removeAttribute('src');
   document.getElementById('scan-placeholder').style.display='block';
@@ -1289,6 +1327,7 @@ window.addEventListener('load',()=>{
   document.getElementById('qr-style-row').style.display='none';
   updateBarcodeHint();
   setupScanDropzone();
+  updateMobileScanButton('scan');
 });
 </script>
 </body>
