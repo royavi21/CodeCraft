@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CodeCraft — Scanner & Generator Suite</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" sizes="any" />
+  <link rel="shortcut icon" href="logo.svg" type="image/svg+xml" sizes="any" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -25,7 +27,7 @@
       --blue-100: #B5D4F4;
       --blue-200: #85B7EB;
       --blue-400: #378ADD;
-      --blue-500: #185FA5;
+      --blue-500: #185fa5;
       --blue-600: #0C447C;
       --blue-900: #042C53;
       --bg: #0B0F1A;
@@ -42,7 +44,7 @@
       --radius: 12px;
       --radius-sm: 8px;
       --radius-lg: 16px;
-      --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition: 0.42s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     body {
@@ -119,7 +121,7 @@
       width: 36px;
       height: 36px;
       background: var(--blue-500);
-      border-radius: 10px;
+      border-radius: 15px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -130,7 +132,7 @@
       width: 20px;
       height: 20px;
       fill: none;
-      stroke: #fff;
+      stroke: #fbfcff;
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round
@@ -299,13 +301,21 @@
       font-size: 18px;
       font-weight: 700;
       color: var(--text);
-      letter-spacing: -0.02em
+      letter-spacing: -0.02em;
+      transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)
     }
 
     .page-subtitle {
       font-size: 12px;
       color: var(--text3);
-      margin-top: 2px
+      margin-top: 2px;
+      transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1), transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)
+    }
+
+    .page-heading.is-switching .page-title,
+    .page-heading.is-switching .page-subtitle {
+      opacity: 0;
+      transform: translateY(8px)
     }
 
     .topbar-actions {
@@ -360,7 +370,8 @@
     .workspace {
       flex: 1;
       overflow-y: auto;
-      padding: 28px
+      padding: 28px;
+      position: relative
     }
 
     /* Panel */
@@ -370,23 +381,59 @@
       border-radius: var(--radius-lg);
       padding: 24px;
       margin-bottom: 20px;
-      display: none
+      display: none;
+      transform-origin: top center;
+      will-change: opacity, transform
+    }
+
+    .panel.active,
+    .panel.panel-leaving {
+      display: block
     }
 
     .panel.active {
-      display: block;
-      animation: fadeUp 0.25s ease both
+      animation: panelIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both
     }
 
-    @keyframes fadeUp {
+    .panel.panel-leaving {
+      animation: panelOut 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
+      pointer-events: none
+    }
+
+    @keyframes panelIn {
       from {
         opacity: 0;
-        transform: translateY(8px)
+        transform: translateY(14px) scale(0.992)
       }
 
       to {
         opacity: 1;
-        transform: translateY(0)
+        transform: translateY(0) scale(1)
+      }
+    }
+
+    @keyframes panelOut {
+      from {
+        opacity: 1;
+        transform: translateY(0) scale(1)
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.996)
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .panel.active,
+      .panel.panel-leaving,
+      .page-title,
+      .page-subtitle {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        opacity: 1 !important
       }
     }
 
@@ -1510,9 +1557,11 @@
   <div class="main">
     <div class="topbar">
       <div>
+      <div class="page-heading" id="page-heading">
         <div class="page-title" id="page-title">Scan QR / Barcode</div>
         <div class="page-subtitle" id="page-subtitle">Upload an image or use your camera to decode a QR or barcode
           instantly.</div>
+      </div>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-ghost btn-sm mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Open tool menu"
@@ -2097,16 +2146,16 @@
             <div class="section-desc">Developer details, version info, and copyright notes</div>
           </div>
         </div>
-        <div class="output-card wide" style="align-items:flex-start;gap:10px">
-          <span class="output-label">Developer</span>
+        <div class="output-card wide" style="align-items:flex-start;gap:15px">
+          <span class="output-label">Developer Details</span>
           <div style="font-size:14px;line-height:1.8;color:var(--text2)">
+            <p style="margin-bottom:8px"><strong>App version:</strong> 2.0</p>
             <p style="margin-bottom:8px"><strong>Developer:</strong> Avijit Roy</p>
             <p style="margin-bottom:8px"><strong>GitHub:</strong> <a href="https://github.com/royavi21" target="_blank"
                 rel="noopener noreferrer"
                 style="color:var(--blue-200);text-decoration:none">https://github.com/royavi21</a></p>
-            <p style="margin-bottom:8px"><strong>App version:</strong> 2.0</p>
-            <p>All rights reserved by <a href="https://github.com/royavi21" target="_blank" rel="noopener noreferrer"
-                style="color:var(--blue-200);text-decoration:none">Avijit Roy</a>.</p>
+            <p style="text-align: justify; ">© All rights reserved by <a href="https://github.com/royavi21" target="_blank" rel="noopener noreferrer"
+                style="color: moccasin;text-decoration:none">Avijit Roy</a>.</p>
           </div>
         </div>
       </div>
@@ -2208,17 +2257,75 @@
         };
       }
 
+      let currentPanelId = 'scan';
+      let navTimer = null;
+      const navReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      function updatePageHeading(id) {
+        const heading = document.getElementById('page-heading');
+        const title = document.getElementById('page-title');
+        const subtitle = document.getElementById('page-subtitle');
+        const nextTitle = pageMeta[id]?.title || id;
+        const nextSub = pageMeta[id]?.sub || '';
+
+        if (!heading || navReduceMotion.matches) {
+          title.textContent = nextTitle;
+          subtitle.textContent = nextSub;
+          return;
+        }
+
+        heading.classList.add('is-switching');
+        setTimeout(() => {
+          title.textContent = nextTitle;
+          subtitle.textContent = nextSub;
+          heading.classList.remove('is-switching');
+        }, 140);
+      }
+
       function nav(id, el) {
+        if (id === currentPanelId && !navTimer) {
+          closeMobileMenu();
+          return;
+        }
+
+        const nextPanel = document.getElementById('panel-' + id);
+        if (!nextPanel) return;
+
+        if (navTimer) {
+          clearTimeout(navTimer);
+          navTimer = null;
+          document.querySelectorAll('.panel.panel-leaving').forEach((panel) => panel.classList.remove('panel-leaving'));
+        }
+
+        const currentPanel = document.getElementById('panel-' + currentPanelId);
+
         document.querySelectorAll('.nav-item, .mobile-menu-item').forEach(n => n.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         if (el) el.classList.add('active');
-        const panel = document.getElementById('panel-' + id);
-        if (panel) panel.classList.add('active');
-        document.getElementById('page-title').textContent = pageMeta[id]?.title || id;
-        document.getElementById('page-subtitle').textContent = pageMeta[id]?.sub || '';
+
+        updatePageHeading(id);
         updateMobileScanButton(id);
         closeMobileMenu();
-        if (id === 'history') renderHistory();
+
+        const finishSwitch = () => {
+          if (currentPanel && currentPanel !== nextPanel) {
+            currentPanel.classList.remove('active', 'panel-leaving');
+          }
+          document.querySelectorAll('.panel').forEach(p => p.classList.remove('active', 'panel-leaving'));
+          nextPanel.classList.add('active');
+          currentPanelId = id;
+          navTimer = null;
+          if (id === 'history') renderHistory();
+        };
+
+        const exitDelay = navReduceMotion.matches ? 0 : 180;
+
+        if (exitDelay > 0 && currentPanel && currentPanel !== nextPanel && currentPanel.classList.contains('active')) {
+          currentPanel.classList.add('panel-leaving');
+          currentPanel.classList.remove('active');
+          navTimer = setTimeout(finishSwitch, exitDelay);
+        } else {
+          finishSwitch();
+        }
       }
 
       function clearCurrent() {
